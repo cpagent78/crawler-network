@@ -1,6 +1,5 @@
 import {
   pgTable,
-  pgSchema,
   text,
   timestamp,
   integer,
@@ -12,29 +11,26 @@ import {
   pgEnum,
 } from "drizzle-orm/pg-core";
 
-// crawler 스키마 (cprice DB와 분리)
-export const crawlerSchema = pgSchema("crawler");
-
 // Enums
-export const submissionStatusEnum = crawlerSchema.enum("submission_status", [
+export const submissionStatusEnum = pgEnum("submission_status", [
   "pending",
   "adopted",
   "rejected",
 ]);
 
-export const rewardTypeEnum = crawlerSchema.enum("reward_type", [
+export const rewardTypeEnum = pgEnum("reward_type", [
   "adoption",
   "performance",
 ]);
 
-export const crawlerStatusEnum = crawlerSchema.enum("crawler_status", [
+export const crawlerStatusEnum = pgEnum("crawler_status", [
   "active",
   "inactive",
   "suspended",
 ]);
 
 // 크롤러 등록/관리
-export const crawlers = crawlerSchema.table("crawlers", {
+export const crawlers = pgTable("crawlers", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   apiKey: text("api_key").notNull().unique(),
@@ -174,7 +170,7 @@ export const crawlerStats = pgTable(
 );
 
 // 서비스 등록/상태
-export const services = crawlerSchema.table("services", {
+export const services = pgTable("services", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
   displayName: text("display_name").notNull(),
