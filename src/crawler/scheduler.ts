@@ -1,26 +1,90 @@
+import { redis } from "@/lib/redis";
+import { getActiveSources, type CrawlSource } from "./sources";
+
+const LAST_CRAWL_PREFIX = "crawler:last_crawl:";
+const CRAWL_LOCK_PREFIX = "crawler:lock:";
+
 /**
- * Crawl Scheduler
- *
- * Manages crawl timing per source site based on configured intervals:
- * - Tech News: 30 min
- * - Product launch sites: 1~2 hours
- * - YouTube trends: 2~3 hours
- * - General blogs: 6 hours
+ * 지금 크롤링해야 할 소스 목록 반환
+ * 마지막 크롤링 시각 + 간격을 기준으로 판단
  */
+export async function getDueSources(): Promise<CrawlSource[]> {
+  const sources = getActiveSources();
+  const dueSources: CrawlSource[] = [];
+  const now = Date.now();
 
-// TODO: Implement scheduling logic
-// - Site-specific crawl intervals
-// - Adaptive scheduling based on reward data
-// - Crawl queue management via Redis
-// - Pause/resume based on service availability
+  for (const source of sources) {
+    const lastCrawl = await redis.get(`${LAST_CRAWL_PREFIX}${source.name}`);
+    const lastCrawlTime = lastCrawl ? Number(lastCrawl) : 0;
+    const intervalMs = source.intervalMinutes * 60 * 1000;
 
-export interface CrawlTask {
-  url: string;
-  crawlerId: string;
-  priority: number;
-  scheduledAt: Date;
+    if (now - lastCrawlTime >= intervalMs) {
+      dueSources.push(source);
+    }
+  }
+
+  return dueSources;
 }
 
-export async function getNextTasks(): Promise<CrawlTask[]> {
-  throw new Error("Not implemented");
+/**
+ * 소스의 마지막 크롤링 시각 업데이트
+ */
+export async function markCrawled(sourceName: string): Promise<void> {
+  await redis.set(`${LAST_CRAWL_PREFIX}${sourceName}`, Date.now().toString());
+}
+
+/**
+ * 도메인별 Rate Limiter
+ * 같은 도메인에 대해 최소 간격을 보장
+ */
+export async function acquireDomainLock(
+  domain: string,
+  lockDurationMs: number = 3000
+): Promise<boolean> {
+  const lockKey = `${CRAWL_LOCK_PREFIX}${domain}`;
+  // NX: 키가 없을 때만 설정, PX: 밀리초 만료
+  const result = await redis.set(lockKey, "1", { nx: true, px: lockDurationMs });
+  return result === "OK";
+}
+
+/**
+ * 모든 서비스가 비활성인지 확인
+ */
+export async function shouldStopCrawling(apiBaseUrl: string, adminKey: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/services`, {
+      headers: { "x-api-key": adminKey },
+    });
+    const data = await response.json();
+    
+    if (!data.services || data.services.length === 0) return false;
+    return data.services.every((s: { active: number }) => s.active === 0);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 크롤러 스케줄러 상태 조회
+ */
+export async function getSchedulerStatus(): Promise<{
+  sources: { name: string; lastCrawl: number | null; nextDue: number }[];
+}> {
+  const sources = getActiveSources();
+  const status = [];
+
+  for (const source of sources) {
+    const lastCrawl = await redis.get(`${LAST_CRAWL_PREFIX}${source.name}`);
+    const lastCrawlTime = lastCrawl ? Number(lastCrawl) : null;
+    const intervalMs = source.intervalMinutes * 60 * 1000;
+    const nextDue = lastCrawlTime ? lastCrawlTime + intervalMs : 0;
+
+    status.push({
+      name: source.name,
+      lastCrawl: lastCrawlTime,
+      nextDue,
+    });
+  }
+
+  return { sources: status };
 }
