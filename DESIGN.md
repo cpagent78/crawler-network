@@ -397,19 +397,29 @@ services
 
 ## 9. 기술 스택
 
+> 기존 cprice/vmap과 동일한 스택으로 통일
+
 | 영역 | 선택 | 이유 |
 |------|------|------|
-| 언어 | Python | 크롤링 생태계 최강, AI/ML 연동 |
-| API 서버 | FastAPI | 비동기, 빠름, 자동 문서화 |
-| DB | PostgreSQL | 기존 서비스와 동일, 검증됨 |
-| 캐시/큐/이벤트 | Redis | 하나로 3역할, 가성비 |
-| 태스크 스케줄링 | Celery | Python 네이티브, 크롤러 태스크 관리 |
-| HTTP 크롤링 | httpx + asyncio | 비동기 대량 요청 |
-| JS 렌더링 | Playwright (Stealth) | SPA/동적 페이지 대응 |
-| 본문 추출 | trafilatura | 기사 본문 추출 정확도 최상급 |
-| LLM 크롤링 | Crawl4AI | AI 친화적, Rate limiting 내장 |
-| 배포 | Docker Compose | 원클릭 로컬/서버 환경 구성 |
-| URL 중복 체크 | Bloom Filter (Redis) | 메모리 효율적, 수백만 URL 대응 |
+| 언어 | TypeScript (Node.js) | 기존 서비스와 통일 |
+| API 서버 | Next.js API Routes | 기존 서비스와 통일, Vercel 네이티브 |
+| DB | Neon (PostgreSQL) | 기존 서비스와 동일, 서버리스 |
+| ORM | Prisma 또는 Drizzle | Neon 연동 최적화 |
+| 캐시/큐 | Upstash Redis | 서버리스 Redis, 무료 티어 |
+| 크롤링 | Puppeteer + Cheerio | Node.js 크롤링 표준 |
+| JS 렌더링 | Puppeteer (Stealth) | SPA/동적 페이지 대응 |
+| 본문 추출 | @extractus/article-extractor | Node.js 본문 추출 |
+| 배포 (API) | Vercel | 기존 서비스와 동일 |
+| 배포 (크롤러) | Mac Mini (로컬) | 장시간 실행 프로세스 |
+| URL 중복 체크 | Upstash Redis (Bloom Filter) | 메모리 효율적 |
+
+### 인프라 구조
+```
+Vercel — API 서버 (서비스 연동, webhook)
+Neon — PostgreSQL DB
+Upstash — Redis (캐시/큐/중복체크)
+Mac Mini — 크롤러 프로세스 (장시간 실행)
+```
 
 ---
 
