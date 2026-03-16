@@ -24,17 +24,25 @@ Vmap AI        Review AI
 - 보상 시스템으로 크롤러 자가 학습/개선
 - 서비스 추가 시 크롤러 코드 변경 없음
 
+## 아키텍처
+
+> 전체 다이어그램은 [Architecture 문서](./docs/ARCHITECTURE.md) 참조
+
+![System Context](./docs/images/01-system-context.jpg)
+
 ## 문서
 
+- [📐 아키텍처 (docs/ARCHITECTURE.md)](./docs/ARCHITECTURE.md) — 시스템 다이어그램 5장
 - [설계 문서 (DESIGN.md)](./DESIGN.md) — 전체 시스템 설계
 - [연동 가이드 (INTEGRATION_GUIDE.md)](./INTEGRATION_GUIDE.md) — 서비스 개발자용
 
 ## 기술 스택
 
-- Python + FastAPI + PostgreSQL + Redis + Celery
-- Crawl4AI / httpx / Playwright (크롤링)
-- trafilatura (본문 추출)
-- Docker Compose (배포)
+- Next.js (App Router) + Drizzle ORM
+- Neon PostgreSQL (별도 프로젝트)
+- 크롤러: Node.js 프로세스 (Mac Mini 로컬)
+- 캐시: 로컬 메모리 → Upstash Redis (추후)
+- 배포: Vercel
 
 ## 연결 서비스
 
